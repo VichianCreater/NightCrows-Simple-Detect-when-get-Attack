@@ -5,7 +5,7 @@
 ### Function 
 
 - Detect a game screen when get attack with image
-- Auto Press a keyboard when get attack
+- Auto Press a keyboard when detected
 - Can use in 16:9 monitor with all resolution
 - Have a notify in discord or line notify with screen capture
 
