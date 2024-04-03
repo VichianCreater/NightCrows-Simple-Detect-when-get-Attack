@@ -1,0 +1,14 @@
+{
+    "account_name": "You Charactor Name",
+    "key_you_need_to_press": 4,
+    "On_line_notify": true,
+    "line_notify_token": "insert Line Token here",
+    "On_Discord_notify": true,
+    "Discord_Webhook_url": "insert Discord Webhook here",
+    "Config_log_message": "Message you need to notify",
+    "ReLoop_When_First_Detected": true,
+    "custom_resolution": false,
+    "resolution_width": 1920,
+    "resolution_height": 1080,
+    "threshold": 0.5
+}
