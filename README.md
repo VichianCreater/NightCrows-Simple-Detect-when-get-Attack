@@ -14,7 +14,7 @@
 
 ### How to do it work
 
-- Download the program at [Release ]([[https://pages.github.com/](https://github.com/korakot14/NightCrows-Simple-Detect-when-get-Attack/releases/tag/v1.2.3)](https://github.com/korakot14/NightCrows-Simple-Detect-when-get-Attack/releases))
+- Download the program at [Release Version](https://pages.github.com/](https://github.com/korakot14/NightCrows-Simple-Detect-when-get-Attack/releases/tag/v1.2.3)](https://github.com/korakot14/NightCrows-Simple-Detect-when-get-Attack/releases))
 - Setup the config.json
 - Start the NightCrowsTP.exe with run administrator
 
