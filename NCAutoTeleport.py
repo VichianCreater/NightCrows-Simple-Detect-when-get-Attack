@@ -3,13 +3,9 @@ import numpy as np
 import pyautogui
 import pydirectinput
 import pyscreeze
-import screeninfo
-import win32gui
 import pygetwindow as gw
-from colorama import Fore,Style
 from PIL import Image
 import os
-import keyboard
 import time
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -57,6 +53,7 @@ if not config:
         "resolution_width": 1920,
         "resolution_height": 1080,
         "threshold": 0.5,
+        "calibrate_image_mode": True,
     }
     save_config(config, config_filename)
 # ##################################################################
@@ -270,6 +267,44 @@ def open_auto_select_path():
         else:
             messagebox.showerror("Error", "Invalid folder path!")
 
+def convert_images():
+    new_sizes = [
+        (43, 50),
+        (29, 33),
+        (19, 22),
+        (172, 200),
+        (115, 133),
+        (86, 100),
+        (36, 42),
+        (36, 42),
+        (28, 33),
+        (22, 26),
+        (50, 59),
+        (57, 67),
+        (73, 86),
+        (43, 53),
+        (32, 39),
+        (38, 47),
+        (31, 36),
+        (36, 42),
+        (46, 53)
+    ]
+    if config.get('calibrate_image_mode'):
+        if detection_running == True:
+            messagebox.showerror("Error", "Can't calibrate when bot is activated")
+        else:
+            file_path = filedialog.askopenfilename(initialdir=folder_path_entry.get())
+            if file_path:
+                original_image = Image.open(file_path)
+                file_name, file_extension = os.path.splitext(file_path)
+                for i, new_size in enumerate(new_sizes):
+                    new_image = original_image.copy()
+                    new_image = new_image.resize(new_size)
+                    new_file_path = f"{file_name}_{new_size[0]}x{new_size[1]}_{i+1}{file_extension}"
+                    new_image.save(new_file_path)
+                    messagebox.showinfo("Success", "Calibrate Success")
+                    break
+
 def center_window(window, width, height):
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
@@ -322,6 +357,9 @@ if __name__ == "__main__":
 
     load_folder_button = tk.Button(button_entry_frame, text="Open Image Folder", command=open_auto_select_path)
     load_folder_button.pack(side=tk.LEFT,padx=5)
+    if config.get('calibrate_image_mode'):
+        convert_button = tk.Button(button_entry_frame, text="Calibrate Image", command=convert_images)
+        convert_button.pack(side=tk.LEFT,padx=5)
 
     button_frame = tk.Frame(root)
     button_frame.pack(pady=5)
