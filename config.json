@@ -1,6 +1,6 @@
 {
     "account_name": "You Charactor Name",
-    "key_you_need_to_press": 4,
+    "key_you_need_to_press": 8,
     "On_line_notify": true,
     "line_notify_token": "insert Line Token here",
     "On_Discord_notify": true,
@@ -10,5 +10,30 @@
     "custom_resolution": false,
     "resolution_width": 1920,
     "resolution_height": 1080,
-    "threshold": 0.5
+    "threshold": 0.7,
+    "calibrate_image_mode": false,
+    "MODE": 1,
+    "check_mouse_position": true,
+    "mouse_point": [
+        [
+            158,
+            208
+        ],
+        [
+            1803,
+            175
+        ],
+        [
+            1596,
+            271
+        ],
+        [
+            1872,
+            268
+        ],
+        [
+            1060,
+            654
+        ]
+    ]
 }
