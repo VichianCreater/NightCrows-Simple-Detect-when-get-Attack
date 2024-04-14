@@ -12,11 +12,14 @@ from tkinter import ttk, filedialog, messagebox
 from datetime import datetime
 import requests
 import json
+import threading
+import subprocess
 
 selected_images = {}
 current_image_index = 0
 detection_running = False
 countdown_active = False
+check_mouse_active = False
 
 # ##################################################################
 # sync Config
@@ -42,7 +45,7 @@ config = load_config(config_filename)
 if not config:
     config = {
         "account_name": "You Charactor Name",
-        "key_you_need_to_press": 4,
+        "key_you_need_to_press": 8,
         "On_line_notify": True,
         "line_notify_token": "insert Line Token here",
         "On_Discord_notify": True,
@@ -52,8 +55,17 @@ if not config:
         "custom_resolution": False,
         "resolution_width": 1920,
         "resolution_height": 1080,
-        "threshold": 0.5,
-        "calibrate_image_mode": True,
+        "threshold": 0.7,
+        "calibrate_image_mode": False,
+        "MODE" : 1,
+        "check_mouse_position": True,
+        "mouse_point": [
+            [158, 208],
+            [1803, 175],
+            [1596, 271],
+            [1872, 268],
+            [1060, 654]
+        ]
     }
     save_config(config, config_filename)
 # ##################################################################
@@ -81,6 +93,9 @@ def detect_selected_image():
     current_image_name = list(selected_images.keys())[current_image_index]
     selected_image = selected_images[current_image_name]
     
+    screen = cv2.GaussianBlur(screen, (5, 5), 0)
+    selected_image = cv2.GaussianBlur(selected_image, (5, 5), 0)
+    
     result = cv2.matchTemplate(screen, selected_image, cv2.TM_CCOEFF_NORMED)
     _, _, _, max_loc = cv2.minMaxLoc(result)
     
@@ -90,6 +105,31 @@ def detect_selected_image():
         return True, current_image_name, max_loc
     
     return False, None, None
+# ##################################################################
+#  Check Mouse Position
+def check_mouse_position():
+    timestamp = datetime.now().strftime("%H:%M")
+    log_text.tag_config("green", foreground="green")
+    log_text.tag_config("red", foreground="red")
+    while check_mouse_active.is_set():
+        if var.get():
+            a = pyautogui.position()
+            log_message = f"[ {timestamp} ] Mouse Position: {a} !\n"
+            log_text.insert(tk.END, log_message, "green")
+            log_text.delete("0.1", tk.END)  # Delete the previous log message
+        else:
+            log_text.delete("1.0", tk.END)  # Delete the previous log message
+
+def on_checkbox_click():
+    if detection_running == True:
+        messagebox.showerror("Error", "Can't open when bot is activated")
+    else:
+        if var.get():
+            check_mouse_active.set()
+            threading.Thread(target=check_mouse_position).start()
+        else:
+            check_mouse_active.clear()
+
 # ##################################################################
 # Line Notify
 line_notify_token = config.get("line_notify_token")
@@ -124,12 +164,16 @@ def send_discord_webhook(url, message, image_path):
 delay = 5000
 
 def start_detection(log_text, webhook_url):
-    global current_image_index, detection_running
+    global current_image_index, detection_running, config
+    config = load_config(config_filename)
+    if not config:
+        messagebox.showerror("Error", "Failed to load configuration. Please check the config.json file.")
+        return
     detection_running = True
     timestamp = datetime.now().strftime("%H:%M")
     log_text.tag_config("green", foreground="green")
     log_text.tag_config("red", foreground="red")
-    log_message = f"[ {timestamp} ] Program Activate !\n"
+    log_message = f"[ {timestamp} ] Program Activate in mode [{config.get('MODE')}] !\n"
     log_text.insert(tk.END, log_message, "green")
 
     # ----------- Line Notify ---------------------
@@ -154,13 +198,14 @@ def start_detection(log_text, webhook_url):
         found, image_name, location = detect_selected_image()
 
         if found:
-            delay = 500
+            delay = 1
             timestamp = datetime.now().strftime("%H:%M")
             log_message = f"[ {timestamp} ] Account Name : {config.get('account_name')}\n[ {timestamp} ] Notify : {config.get('Config_log_message')}\n"
             log_text.insert(tk.END, log_message)
             log_text.yview(tk.END)
 
             focused_windows = gw.getWindowsWithTitle('NIGHT CROWS(1)')
+
             if focused_windows:
                 try:
                     focused_window = focused_windows[0]
@@ -175,12 +220,6 @@ def start_detection(log_text, webhook_url):
                 log_message = f"[ {timestamp} ] Window not found.\n"
                 log_text.insert(tk.END, log_message, "red")
 
-            pydirectinput.keyDown(f"{config.get('key_you_need_to_press')}")
-            time.sleep(0.05)
-            pydirectinput.keyUp(f"{config.get('key_you_need_to_press')}")
-
-            current_image_index = (current_image_index + 1) % len(selected_images)
-            
             screenshot = pyscreeze.screenshot(region=(focused_window.left, focused_window.top, focused_window.width, focused_window.height))
             resized_screenshot = screenshot.resize((854, 480), Image.LANCZOS)
             # resized_screenshot = screenshot.resize((2560, 1440), Image.LANCZOS)
@@ -201,6 +240,32 @@ def start_detection(log_text, webhook_url):
                 send_discord_webhook(webhook_url, log_message, image_path)
             
             os.remove(image_path)
+
+            if config.get('MODE') == 1:
+                pydirectinput.keyDown(f"{config.get('key_you_need_to_press')}")
+                time.sleep(0.05)
+                pydirectinput.keyUp(f"{config.get('key_you_need_to_press')}")
+            elif config.get('MODE') == 2:
+                focused_windows = gw.getWindowsWithTitle('NIGHT CROWS(1)')
+                if focused_windows:
+                    focused_window = focused_windows[0]
+                    window_left = focused_window.left
+                    window_top = focused_window.top
+                    window_width = focused_window.width
+                    window_height = focused_window.height
+
+                    target_coordinates_relative = config.get('mouse_point')
+
+                    scale_x = window_width / config.get('resolution_width')
+                    scale_y = window_height / config.get('resolution_height')
+
+                    for x_rel, y_rel in target_coordinates_relative:
+                        absolute_x = window_left + int(x_rel * scale_x)
+                        absolute_y = window_top + int(y_rel * scale_y)
+                        pydirectinput.click(absolute_x, absolute_y)
+                        time.sleep(1)
+
+            current_image_index = (current_image_index + 1) % len(selected_images)
 
             if config.get('ReLoop_When_First_Detected'):
                 log_message = f"[ {timestamp} ] Program Continue Detected !\n"
@@ -228,10 +293,7 @@ def stop_detection_Button():
     log_message = f"[ {timestamp} ] Stopping Program.\n"
     log_text.insert(tk.END, log_message, "red")
     log_text.yview(tk.END)
-
-def stop_detection():
-    global detection_running
-    detection_running = False
+    
 
 def select_folder_path():
     if detection_running == True:
@@ -266,6 +328,15 @@ def open_auto_select_path():
             os.startfile(folder_path)
         else:
             messagebox.showerror("Error", "Invalid folder path!")
+
+def open_config_file():
+    if detection_running == True:
+        messagebox.showerror("Error", "Can't open when bot is activated")
+    else:
+        try:
+            subprocess.Popen(['notepad.exe', 'config.json'], shell=True)  
+        except Exception as e:
+            print("Error:", e)
 
 def convert_images():
     new_sizes = [
@@ -319,7 +390,7 @@ if __name__ == "__main__":
     root.title("Night Crows Auto Teleport")
     root.iconbitmap("icon.ico")
     window_width = 550
-    window_height = 500
+    window_height = 600
     center_window(root, window_width, window_height)
 
     folder_path_label = tk.Label(root, text="Database Image Folder")
@@ -361,6 +432,12 @@ if __name__ == "__main__":
         convert_button = tk.Button(button_entry_frame, text="Calibrate Image", command=convert_images)
         convert_button.pack(side=tk.LEFT,padx=5)
 
+    if config.get('check_mouse_position'):
+        var = tk.BooleanVar()
+        checkmouse_button = tk.Checkbutton(root, text="Check Mouse Position", variable=var, command=on_checkbox_click)
+        checkmouse_button.pack()
+        check_mouse_active = threading.Event()
+
     button_frame = tk.Frame(root)
     button_frame.pack(pady=5)
 
@@ -379,6 +456,12 @@ if __name__ == "__main__":
     scrollbar = tk.Scrollbar(log_frame, orient=tk.VERTICAL, command=log_text.yview)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     log_text.config(yscrollcommand=scrollbar.set)
+
+    lower_frame = tk.Frame(root)
+    lower_frame.pack(pady=5)
+
+    open_config_button = tk.Button(lower_frame, text="Open Config Setting", command=open_config_file)
+    open_config_button.pack(side=tk.LEFT,padx=10)
 
     auto_select_folder_path(folder_path_entry, log_text)
 
