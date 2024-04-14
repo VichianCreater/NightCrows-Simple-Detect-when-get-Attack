@@ -15,6 +15,7 @@
 ### How to do it work
 
 - Download the program at [Release Version](https://github.com/korakot14/NightCrows-Simple-Detect-when-get-Attack/releases)
+- Read the setup_config.txt
 - Setup the config.json
 - Start the NightCrowsTP.exe with run administrator
 
