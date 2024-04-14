@@ -1,0 +1,39 @@
+{
+    "account_name": "Character name",                        << Character name
+    "key_you_need_to_press": 4,                              << Keyboard key
+    "On_line_notify": true,                                  << Turn Line notification on or off (true = on | false = off). If on, insert Token.
+    "line_notify_token": "insert Line Token here",           << Insert Line Notify Token
+    "On_Discord_notify": true,                               << Turn Discord notification on or off (true = on | false = off). If on, insert Webhook URL.
+    "Discord_Webhook_url": "insert Discord Webhook here",    << Insert Discord Webhook URL
+    "Config_log_message": "Message you need to notify",      << Message to notify when warping home [appears in the program, Line, and Discord]
+    "ReLoop_When_First_Detected": true,			     << true = continuously work | false = work once then stop
+    "custom_resolution": false,				     << true = check custom screen resolution | false = use standard screen resolution
+    "resolution_width": 1920,				     << If custom_resolution = true, edit here; if false, no need to edit.
+    "resolution_height": 1080,				     << If custom_resolution = true, edit here; if false, no need to edit.
+    "threshold": 0.7,					     << Detection percentage; 0.7 = 70% 
+    "calibrate_image_mode": false,			     << Calibrate images in the image folder or create images in standard screen resolutions [Do not edit if unclear]
+    "MODE": 1,						     << Mode 1 = press keyboard key when detected | Mode 2 = auto-click when detected
+    "check_mouse_position": true,			     << Open block check for checking mouse points
+    "mouse_point":[					     << Points for the program to click; can add continuously (don't forget commas)
+        [
+            158,
+            208
+        ],
+        [
+            1803,
+            175
+        ],
+        [
+            1596,
+            271
+        ],
+        [
+            1872,
+            268
+        ],
+        [
+            1060,
+            654
+        ]
+    ]
+}
