@@ -1,4 +1,5 @@
 {
+    "debug": false,
     "account_name": "You Charactor Name",
     "key_you_need_to_press": 8,
     "On_line_notify": true,
