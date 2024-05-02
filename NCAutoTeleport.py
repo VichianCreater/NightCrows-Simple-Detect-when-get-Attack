@@ -44,6 +44,7 @@ config_filename = "config.json"  # ชื่อไฟล์ Config
 config = load_config(config_filename)
 if not config:
     config = {
+        "debug": False,
         "account_name": "You Charactor Name",
         "key_you_need_to_press": 8,
         "On_line_notify": True,
@@ -55,7 +56,7 @@ if not config:
         "custom_resolution": False,
         "resolution_width": 1920,
         "resolution_height": 1080,
-        "threshold": 0.7,
+        "threshold": 0.8,
         "calibrate_image_mode": False,
         "MODE" : 1,
         "check_mouse_position": True,
@@ -83,26 +84,37 @@ def load_selected_images(folder_path):
 
 def detect_selected_image():
     global selected_images, current_image_index
+    focused_windows = gw.getWindowsWithTitle('NIGHT CROWS(1)')
+    if not focused_windows:
+        return False, None, None
+    focused_window = focused_windows[0]
 
-    if config.get('custom_resolution'):
-        width, height = config.get('resolution_width'), config.get('resolution_height')
-        screen = cv2.cvtColor(np.array(pyscreeze.screenshot(region=(0, 0, width, height))), cv2.COLOR_RGB2BGR)
-    else:
-        screen = cv2.cvtColor(np.array(pyautogui.screenshot()), cv2.COLOR_RGB2BGR)
-    
+    window_left = focused_window.left
+    window_top = focused_window.top
+    window_width = focused_window.width
+    window_height = focused_window.height
+
+    region_width = window_width // 3
+    region_height = window_height // 3
+    region_left = window_left + window_width - region_width
+    region_top = window_top + window_height - region_height
+
+    screen = cv2.cvtColor(np.array(pyscreeze.screenshot(region=(region_left, region_top, region_width, region_height))), cv2.COLOR_RGB2BGR)
+ 
     current_image_name = list(selected_images.keys())[current_image_index]
     selected_image = selected_images[current_image_name]
     
-    screen = cv2.GaussianBlur(screen, (5, 5), 0)
-    selected_image = cv2.GaussianBlur(selected_image, (5, 5), 0)
+    screen = cv2.GaussianBlur(screen, (3, 3), 0)
+    selected_image = cv2.GaussianBlur(selected_image, (3, 3), 0)
     
     result = cv2.matchTemplate(screen, selected_image, cv2.TM_CCOEFF_NORMED)
-    _, _, _, max_loc = cv2.minMaxLoc(result)
+    _, max_val, _, max_loc = cv2.minMaxLoc(result)
     
     threshold = config.get('threshold')
     
-    if np.max(result) > threshold:
-        return True, current_image_name, max_loc
+    if max_val > threshold:
+        max_loc_global = (max_loc[0] + region_left, max_loc[1] + region_top)
+        return True, current_image_name, max_loc_global
     
     return False, None, None
 # ##################################################################
@@ -116,9 +128,9 @@ def check_mouse_position():
             a = pyautogui.position()
             log_message = f"[ {timestamp} ] Mouse Position: {a} !\n"
             log_text.insert(tk.END, log_message, "green")
-            log_text.delete("0.1", tk.END)  # Delete the previous log message
+            log_text.delete("0.1", tk.END)
         else:
-            log_text.delete("1.0", tk.END)  # Delete the previous log message
+            log_text.delete("1.0", tk.END)
 
 def on_checkbox_click():
     if detection_running == True:
@@ -161,6 +173,29 @@ def send_discord_webhook(url, message, image_path):
     requests.post(url, files=files)
 # ##################################################################
 
+SCREENSHOT_WIDTH = 100
+SCREENSHOT_HEIGHT = 100
+
+def take_screenshot_at_location(location, save_path="detected_screenshot.png"):
+    x, y = location
+    
+    top_left_x = x - SCREENSHOT_WIDTH // 2
+    top_left_y = y - SCREENSHOT_HEIGHT // 2
+
+    screen_width, screen_height = pyscreeze.screenshot().size
+    top_left_x = max(0, top_left_x)
+    top_left_y = max(0, top_left_y)
+    
+    actual_width = min(SCREENSHOT_WIDTH, screen_width - top_left_x)
+    actual_height = min(SCREENSHOT_HEIGHT, screen_height - top_left_y)
+    
+    screenshot = pyscreeze.screenshot(region=(top_left_x, top_left_y, actual_width, actual_height))
+    
+    screenshot.save(save_path)
+    print(f"Screenshot taken and saved to {save_path}")
+
+    return save_path
+
 delay = 5000
 
 def start_detection(log_text, webhook_url):
@@ -198,7 +233,18 @@ def start_detection(log_text, webhook_url):
         found, image_name, location = detect_selected_image()
 
         if found:
-            delay = 1
+            if config.get('debug'):
+                log_message = f"Detected '{image_name}' at location {location}\n"
+                log_text.insert(tk.END, log_message, "green")
+                
+                with open("detected_points.json", "a") as file:
+                    json.dump({"image": image_name, "location": location}, file)
+                    file.write("\n")
+
+                screenshot_path = take_screenshot_at_location(location, "detected_screenshot.png")
+                log_message = f"Screenshot saved at: {screenshot_path}\n"
+                log_text.insert(tk.END, log_message, "green")
+
             timestamp = datetime.now().strftime("%H:%M")
             log_message = f"[ {timestamp} ] Account Name : {config.get('account_name')}\n[ {timestamp} ] Notify : {config.get('Config_log_message')}\n"
             log_text.insert(tk.END, log_message)
@@ -276,12 +322,11 @@ def start_detection(log_text, webhook_url):
                 break
 
         else:
-            delay = 0
             current_image_index = (current_image_index + 1) % len(selected_images)
 
         root.update_idletasks()
         root.update()
-        cv2.waitKey(delay)
+        cv2.waitKey(0)
 
 
 def stop_detection_Button():
